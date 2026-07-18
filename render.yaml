@@ -1,0 +1,28 @@
+services:
+  # Single service: Express API + React dashboard served together.
+  # The Express server serves /api/* routes AND the built React app from the same URL.
+  # No cross-origin issues, no two-service coordination needed.
+  - type: web
+    name: gridlock
+    runtime: node
+    plan: free
+
+    # Build both the dashboard and the API server.
+    # VITE_MAPPLS_API_KEY is injected at build time into index.html via %VITE_MAPPLS_API_KEY%.
+    # Dashboard output lands at artifacts/gridlock-dashboard/dist/public
+    # which the Express server picks up automatically in production.
+    buildCommand: |
+      npm install -g pnpm
+      pnpm install
+      pnpm --filter @workspace/gridlock-dashboard run build
+      pnpm --filter @workspace/api-server run build
+
+    startCommand: node artifacts/api-server/dist/index.mjs
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: VITE_MAPPLS_API_KEY
+        sync: false

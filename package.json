@@ -1,0 +1,9 @@
+{
+  "name": "gridlock-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "typecheck:libs": "tsc --build",
+    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter '!@workspace/scripts' run typecheck"
+  }
+}

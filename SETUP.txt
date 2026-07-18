@@ -1,0 +1,131 @@
+GRIDLOCK — Event-Driven Traffic Incident Intelligence
+Flipkart Hackathon Round 2 | Problem Statement 2
+======================================================
+
+FIRST TIME SETUP
+-----------------
+
+S1 — Extract zip
+    Right-click the zip → Extract All → choose any folder you like.
+    You will get a folder called: gridlock_event_driven_congestion
+
+S2 — Open CMD inside that folder
+    Open the extracted gridlock_event_driven_congestion folder in File Explorer.
+    Click the address bar at the top → type "cmd" → press Enter.
+    A Command Prompt will open already inside that folder.
+
+S3 — Install deps
+    pnpm install
+    (takes 1–2 minutes, needs Node 18+ and pnpm installed)
+    Get Node: https://nodejs.org
+    Get pnpm: npm install -g pnpm
+
+S4 — Approve esbuild (only if you see this warning)
+    Warning: [ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: esbuild@0.27.3
+
+    Run:
+        pnpm approve-builds
+    Arrow keys → select esbuild → Space → Enter → then run pnpm install again
+    Skip this step if you did not see the warning.
+
+S5 — Fix Rollup (Windows only, only if you see this error)
+    Error: Cannot find module @rollup/rollup-win32-x64-msvc
+
+    Run:
+        pnpm add -D @rollup/rollup-win32-x64-msvc --filter @workspace/gridlock-dashboard
+    Skip this step if you did not see the error.
+
+NOTE: The .env file is already included — no map key setup needed.
+
+
+RUNNING THE APP  (need 2 terminal windows open at the same time)
+-----------------------------------------------------------------
+
+TERMINAL 1 — Start API server
+    (use the CMD you opened in S2)
+
+    PowerShell (prompt starts with PS):
+        $env:NODE_ENV = "development"
+        $env:PORT = "5000"
+        pnpm --filter @workspace/api-server run build
+        pnpm --filter @workspace/api-server run start
+
+    CMD (prompt looks like C:\>):
+        set NODE_ENV=development
+        set PORT=5000
+        pnpm --filter @workspace/api-server run build
+        pnpm --filter @workspace/api-server run start
+
+    Wait for: INFO  Server listening  port: 5000
+    Keep this window open.
+
+TERMINAL 2 — Start dashboard
+    Open a second CMD the same way (File Explorer → address bar → "cmd" → Enter)
+
+    pnpm --filter @workspace/gridlock-dashboard run dev
+
+    Wait for:
+        VITE v7.x.x  ready in xxxx ms
+        Local: http://localhost:3000/
+
+S6 — Open dashboard in browser
+    http://localhost:3000
+
+    Pages:
+        /            Overview (KPI cards + hotspot map + events table)
+        /predict     Event Predictor (real-time 3-model ML)
+        /analytics   Corridor + temporal + cause charts
+        /pipeline    ML architecture + model metrics
+
+
+TESTING THE API (optional — CMD, while API server is running)
+--------------------------------------------------------------
+
+Health check:
+    curl http://localhost:5000/api/healthz
+
+KPI summary:
+    curl http://localhost:5000/api/events/summary
+
+54 risk zones:
+    curl http://localhost:5000/api/events/hotspots
+
+Predict (CMD):
+    curl -X POST http://localhost:5000/api/predict ^
+      -H "Content-Type: application/json" ^
+      -d "{\"event_cause\":\"accident\",\"veh_type\":\"Car\",\"corridor\":\"Hosur Road\",\"priority\":\"High\",\"hour\":8,\"day_of_week\":1,\"is_weekend\":0,\"is_rush\":1}"
+
+Predict (PowerShell):
+    $body = '{"event_cause":"accident","veh_type":"Car","corridor":"Hosur Road","priority":"High","hour":8,"day_of_week":1,"is_weekend":0,"is_rush":1}'
+    Invoke-WebRequest -Uri http://localhost:5000/api/predict -Method POST -ContentType "application/json" -Body $body
+
+Expected response:
+    {
+      "severity": "HIGH",
+      "severity_confidence": 0.85,
+      "predicted_duration_mins": 95.4,
+      "closure_probability": 0.73,
+      "resource_recommendation": {
+        "manpower_min": 8,
+        "manpower_max": 12,
+        "deployment_priority": "Immediate (0-15 min)",
+        "barricade_type": "Metal barricades + traffic cones",
+        "diversion_route": "Sarjapur Road / Bannerghatta Road"
+      }
+    }
+
+
+ML PIPELINE (optional — outputs pre-baked, skip unless retraining)
+-------------------------------------------------------------------
+    pip install lightgbm xgboost scikit-learn pandas numpy pygeohash
+    python ml/train_pipeline_v14.py
+    Runtime: ~25-30 minutes on CPU
+
+
+DEPLOY TO RENDER (get a public URL)
+------------------------------------
+    render.yaml is included. Steps:
+    1. Push to GitHub (public repo)
+    2. render.com -> New+ -> Blueprint -> connect repo -> Apply
+    3. Environment -> Add: VITE_MAPPLS_API_KEY = wjdqrmarfjpcdbofahpjpniocjuelcdvtyvf
+    4. Wait 3-5 min -> get your https://gridlock-xxxx.onrender.com URL
